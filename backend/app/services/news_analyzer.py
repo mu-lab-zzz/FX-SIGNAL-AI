@@ -1,12 +1,11 @@
 """
-AI-powered news/CB-statement analyzer using Claude.
+AI-powered news/CB-statement analyzer using Google Gemini.
 Classifies impact on each currency: -3 (very bearish) to +3 (very bullish).
 """
 
 from __future__ import annotations
 import json
-from typing import Optional
-import anthropic
+import httpx
 
 from app.config import settings
 
@@ -46,33 +45,39 @@ DEMO_NEWS = [
     },
 ]
 
+_GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+
 
 async def analyze_news_impact(headlines: list[str], currencies: list[str]) -> dict:
     """
-    Call Claude to classify currency impact of news headlines.
+    Call Gemini to classify currency impact of news headlines.
     Returns dict: { currency: score (-3 to +3) }
     Falls back to demo data when API key is absent.
     """
-    if not settings.anthropic_api_key:
+    if not settings.gemini_api_key:
         return _demo_impact(currencies)
 
-    client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
     prompt = (
         "You are an expert FX analyst. Given these news headlines, "
         "score the impact on each currency from -3 (very bearish) to +3 (very bullish). "
         "Return ONLY a JSON object with currency codes as keys.\n\n"
         f"Headlines:\n{chr(10).join(f'- {h}' for h in headlines)}\n\n"
         f"Currencies to score: {', '.join(currencies)}\n\n"
-        "Return ONLY valid JSON. Example: {\"USD\": 2, \"JPY\": -1}"
+        'Return ONLY valid JSON. Example: {"USD": 2, "JPY": -1}'
     )
 
-    message = await client.messages.create(
-        model="claude-sonnet-5",
-        max_tokens=256,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    text = message.content[0].text.strip()
-    # Extract JSON from response
+    url = f"{_GEMINI_BASE}/{settings.gemini_model}:generateContent?key={settings.gemini_api_key}"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"maxOutputTokens": 256, "temperature": 0.1},
+    }
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        resp = await client.post(url, json=payload)
+        resp.raise_for_status()
+        data = resp.json()
+
+    text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
     start = text.find("{")
     end = text.rfind("}") + 1
     return json.loads(text[start:end])
