@@ -3,19 +3,40 @@ version: "3.9"
 services:
   backend:
     build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - DB_PATH=/data/fx_signal.db
+    volumes:
+      - db_data:/data
     ports:
       - "8000:8000"
-    env_file:
-      - .env
-    volumes:
-      - ./backend:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      retries: 3
 
   frontend:
-    build: ./frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - REACT_APP_API_URL=http://localhost:8000/api/v1
+    build:
+      context: ./frontend
+      args:
+        - REACT_APP_API_URL=http://localhost/api/v1
+        - REACT_APP_WS_URL=ws://localhost
+    restart: unless-stopped
     depends_on:
       - backend
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # Mount built frontend (override in production with multi-stage build)
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  db_data:
