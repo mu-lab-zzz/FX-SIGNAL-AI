@@ -22,12 +22,16 @@ type WsMessage =
   | { type: "batch"; ticks: WsTick[] }
   | WsAlert;
 
-const WS_URL =
+const WS_BASE =
   (process.env.REACT_APP_WS_URL || "ws://localhost:8000") + "/ws/prices";
 
-const RECONNECT_DELAY_MS = 3000;
+const RECONNECT_MS = 3000;
+const PING_MS = 20_000;
 
-export function useWebSocket(onTicks: (ticks: WsTick[]) => void, onAlert?: (a: WsAlert) => void) {
+export function useWebSocket(
+  onTicks: (ticks: WsTick[]) => void,
+  onAlert?: (a: WsAlert) => void
+) {
   const ws = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const onTicksRef = useRef(onTicks);
@@ -38,7 +42,11 @@ export function useWebSocket(onTicks: (ticks: WsTick[]) => void, onAlert?: (a: W
   const connect = useCallback(() => {
     if (ws.current?.readyState === WebSocket.OPEN) return;
 
-    const socket = new WebSocket(WS_URL);
+    // Attach JWT token so server can register per-user alerts
+    const token = localStorage.getItem("fx_token");
+    const url = token ? `${WS_BASE}?token=${encodeURIComponent(token)}` : WS_BASE;
+
+    const socket = new WebSocket(url);
     ws.current = socket;
 
     socket.onopen = () => setConnected(true);
@@ -56,7 +64,7 @@ export function useWebSocket(onTicks: (ticks: WsTick[]) => void, onAlert?: (a: W
 
     socket.onclose = () => {
       setConnected(false);
-      setTimeout(connect, RECONNECT_DELAY_MS);
+      setTimeout(connect, RECONNECT_MS);
     };
 
     socket.onerror = () => socket.close();
@@ -68,12 +76,18 @@ export function useWebSocket(onTicks: (ticks: WsTick[]) => void, onAlert?: (a: W
       if (ws.current?.readyState === WebSocket.OPEN) {
         ws.current.send("ping");
       }
-    }, 20_000);
+    }, PING_MS);
     return () => {
       clearInterval(ping);
       ws.current?.close();
     };
   }, [connect]);
 
-  return { connected };
+  // Reconnect when login state changes (token added/removed)
+  const reconnect = useCallback(() => {
+    ws.current?.close();
+    setTimeout(connect, 100);
+  }, [connect]);
+
+  return { connected, reconnect };
 }

@@ -15,7 +15,7 @@ from typing import Optional
 from app.config import settings
 
 DB_PATH = os.environ.get("DB_PATH", "fx_signal.db")
-_SECRET = os.environ.get("JWT_SECRET", "change-me-in-production-please")
+_SECRET = settings.jwt_secret
 
 
 # ── DB init ───────────────────────────────────────────────────────────────────

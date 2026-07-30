@@ -12,12 +12,21 @@ class Settings(BaseSettings):
     alpha_vantage_api_key: str = ""
     twelve_data_api_key: str = ""
 
+    # Auth
+    jwt_secret: str = "change-me-in-production"
+
     # AI
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.0-flash"
 
+    # News
+    newsapi_key: str = ""       # https://newsapi.org (free: 100 req/day)
+
     # Economic calendar
     trading_economics_api_key: str = ""
+
+    # CORS (comma-separated origins, "*" = allow all)
+    cors_origins: str = "*"
 
     # Scoring thresholds
     strong_buy_threshold: int = 80

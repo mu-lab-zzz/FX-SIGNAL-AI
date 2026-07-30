@@ -28,4 +28,18 @@ export const api = {
 
   getNews: () =>
     fetchJson<{ items: NewsItem[] }>("/news/recent"),
+
+  getOhlcv: (pair: string, timeframe = "D", count = 120) =>
+    fetchJson<{ pair: string; timeframe: string; bars: OhlcvBar[] }>(
+      `/prices/${pair.replace("/", "-")}?timeframe=${timeframe}&count=${count}`
+    ),
 };
+
+export interface OhlcvBar {
+  t: string;
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+  v: number;
+}

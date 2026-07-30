@@ -9,6 +9,7 @@ import {
   formatPrice,
 } from "../utils/format";
 import { ScoreGauge } from "./ScoreGauge";
+import { PriceChart } from "./PriceChart";
 import {
   RadarChart,
   PolarGrid,
@@ -147,6 +148,9 @@ export const SignalDetail: React.FC<Props> = ({ pair }) => {
           </div>
         </div>
       </div>
+
+      {/* Price chart */}
+      <PriceChart pair={pair} liveTick={{ price: signal.current_price, score: signal.total_score }} />
 
       {/* Alerts */}
       {signal.alerts.length > 0 && (

@@ -8,13 +8,15 @@ import { NewsPanel } from "../components/NewsPanel";
 import { BacktestPanel } from "../components/BacktestPanel";
 import { AuthModal } from "../components/AuthModal";
 import { AlertBanner } from "../components/AlertBanner";
+import { SettingsPanel } from "../components/SettingsPanel";
 import { useWebSocket, WsTick, WsAlert } from "../hooks/useWebSocket";
 import { useAuth } from "../hooks/useAuth";
 import { useNotifications } from "../hooks/useNotifications";
 import { scoreEmoji, strengthColor } from "../utils/format";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 
 type Tab = "signal" | "backtest";
-type SideTab = "strength" | "news";
+type SideTab = "strength" | "news" | "settings";
 
 const NAV_TABS: { key: Tab; label: string }[] = [
   { key: "signal",   label: "シグナル詳細" },
@@ -24,6 +26,7 @@ const NAV_TABS: { key: Tab; label: string }[] = [
 const SIDE_TABS: { key: SideTab; label: string }[] = [
   { key: "strength", label: "通貨強弱" },
   { key: "news",     label: "ニュース"  },
+  { key: "settings", label: "設定"      },
 ];
 
 // ── Responsive breakpoint ─────────────────────────────────────────────────────
@@ -253,8 +256,10 @@ export const Dashboard: React.FC = () => {
                 </button>
               ))}
             </div>
-            {activeTab === "signal"   && <SignalDetail pair={selectedPair} />}
-            {activeTab === "backtest" && <BacktestPanel pair={selectedPair} />}
+            <ErrorBoundary label="シグナル詳細">
+              {activeTab === "signal"   && <SignalDetail pair={selectedPair} />}
+              {activeTab === "backtest" && <BacktestPanel pair={selectedPair} />}
+            </ErrorBoundary>
           </div>
 
           {/* Right sidebar */}
@@ -266,8 +271,11 @@ export const Dashboard: React.FC = () => {
                 </button>
               ))}
             </div>
-            {activeSideTab === "strength" && <CurrencyStrengthMapComponent />}
-            {activeSideTab === "news"     && <NewsPanel />}
+            <ErrorBoundary label="サイドパネル">
+              {activeSideTab === "strength" && <CurrencyStrengthMapComponent />}
+              {activeSideTab === "news"     && <NewsPanel />}
+              {activeSideTab === "settings" && <SettingsPanel />}
+            </ErrorBoundary>
           </div>
         </div>
       ) : (
@@ -299,8 +307,10 @@ export const Dashboard: React.FC = () => {
                   </button>
                 ))}
               </div>
-              {activeTab === "signal"   && <SignalDetail pair={selectedPair} />}
-              {activeTab === "backtest" && <BacktestPanel pair={selectedPair} />}
+              <ErrorBoundary label="シグナル詳細">
+                {activeTab === "signal"   && <SignalDetail pair={selectedPair} />}
+                {activeTab === "backtest" && <BacktestPanel pair={selectedPair} />}
+              </ErrorBoundary>
             </div>
           )}
           {mobilePanel === "side" && (
@@ -312,8 +322,10 @@ export const Dashboard: React.FC = () => {
                   </button>
                 ))}
               </div>
-              {activeSideTab === "strength" && <CurrencyStrengthMapComponent />}
-              {activeSideTab === "news"     && <NewsPanel />}
+              <ErrorBoundary label="分析パネル">
+                {activeSideTab === "strength" && <CurrencyStrengthMapComponent />}
+                {activeSideTab === "news"     && <NewsPanel />}
+              </ErrorBoundary>
             </div>
           )}
           <MobileNav />
